@@ -416,17 +416,29 @@ router.get('/location/get' , verifyUser , async (req , res) => {
         if(result.rows.length === 0){
             return res.status(200).json({
                 success: false,
-                error: 'No Address has been added.'
+                text: 'No Address has been added.'
             })
         }
 
         const user_address = result.rows[0]
 
+        const isInside = geolib.isPointInPolygon({
+            latitude: user_address.latitude , longitude: user_address.longitude
+        }, gaavyaDeliveryZone)
+
+        if(!isInside){
+            return res.status(200).json({
+                success: false,
+                text: 'Not available in your areas',
+                user_address: user_address
+            })
+        }
+
         await redis.set(`user_address:${userId}` , JSON.stringify(user_address) , 'EX' , 3600)
 
         return res.status(200).json({
             success: true,
-            text: 'Fot the address from database.',
+            text: 'Got the address from database.',
             user_address: user_address
         })
     } catch (error) {
@@ -602,23 +614,37 @@ router.post('/review/get' , async (req , res) => {
         const redisCache = await redis.get(`reviews_item_id:${itemId}`)
 
         if (redisCache){
+            const data = JSON.parse(redisCache);
+
             return res.status(200).json({
                 success: true,
                 text: 'Successfully got the reviews',
-                user_reviews: JSON.parse(redisCache)
+                ...data
             })
         }
 
         const result = await pool.query('SELECT id , rating , comment , is_verified_purchase FROM user_reviews WHERE item_id = $1' , [itemId])
 
         const user_reviews = result.rows
+        let totalRating = 0
 
-        await redis.set(`reviews_item_id:${itemId}` , JSON.stringify(user_reviews) , 'EX' , 3600)
+        for(let i =0 ; i < user_reviews.length ; i++){
+            totalRating += Number(user_reviews[i].rating)
+        }
+
+        const averageRating = user_reviews.length > 0 ? (totalRating / user_reviews.length).toFixed(2) : 0;
+
+        await redis.set(`reviews_item_id:${itemId}` , 
+                JSON.stringify({
+                user_reviews,
+                averageRating
+            }) , 'EX' , 3600)
     
         return res.status(200).json({
             success: true,
             text: 'Reviews successfully fetched',
-            user_reviews: user_reviews
+            user_reviews,
+            averageRating
         })
     } catch (error) {
         console.log(error)
