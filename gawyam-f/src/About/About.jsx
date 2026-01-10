@@ -1,4 +1,3 @@
-import React from 'react';
 import { Heart, Truck, Users } from 'react-feather';
 import farmHero from '../Assets/g1.png'; 
 

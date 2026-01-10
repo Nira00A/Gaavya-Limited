@@ -1,3 +1,4 @@
+import React from 'react'
 import { useEffect, useState } from 'react'
 import { Key, Star, User } from 'react-feather'
 import { toast } from 'react-toastify'
@@ -38,7 +39,6 @@ const StarRating = ({totalStars= 5 , onRatingSelect , alone = false}) => {
                     onClick={() => {
                         setRating(starVal)
                         onRatingSelect(starVal)
-                        console.log(starVal)
                     }}/>
                 )
             })}
@@ -46,7 +46,7 @@ const StarRating = ({totalStars= 5 , onRatingSelect , alone = false}) => {
     )
 }
 
-export const Review = ({itemId}) => {
+export const Review = React.memo(({itemId}) => {
     const [rating , setRating] = useState(null)
     const [comment , setComment] = useState(null)
     const { user} = useAuth()
@@ -75,7 +75,17 @@ export const Review = ({itemId}) => {
             is_verified_purchase: isVerifiedPurchase
         }
 
-        setReviews((prev) => [ optimisticReview , ...prev ])
+        setReviews((prev) => {
+            const currentLength = prev.user_reviews.length
+            const currentTotal = Number(prev.averageRating) * currentLength
+            const newAvg = (currentTotal + optimisticReview.rating) / (currentLength + 1)
+
+            return {
+                ...prev,
+                user_reviews : [optimisticReview , ...prev.user_reviews],
+                averageRating: newAvg
+            }
+        })
 
         setComment("")
         setRating(0)
@@ -84,12 +94,26 @@ export const Review = ({itemId}) => {
             const result = await reviewPost(itemId , savedRating , savedComment, isVerifiedPurchase)
         
             if (result && result.success){
-                setReviews(prev => prev.map(r => r.id === randId ? {...result.user_reviews} : r))
+                setReviews(prev => {
+                    const updatedReviews = prev.user_reviews.map(r => r.id === randId ? {...result.user_reviews} : r)
+
+                    return {
+                        ...prev,
+                        user_reviews: updatedReviews
+                    }
+                })
             }else {
                 toast.error('Error in Saving review')
             }
         } catch (error) {
-            setReviews(prev => prev.filter(r => r.id !== randId));
+            setReviews((prev) => {
+                const updatedReviews = prev.user_reviews.filter(r => r.id !== randId)
+
+                return{
+                    ...prev,
+                    user_reviews: updatedReviews
+                }
+            });
 
             setComment(savedComment)
             setRating(savedRating)
@@ -101,17 +125,17 @@ export const Review = ({itemId}) => {
     useEffect(()=>{
         const fetchReviews = async() => {
             try {
-                const response = await reviewsGet(itemId)
-
-                toast.success(response.text)
+                await reviewsGet(itemId)
             } catch (error) {
                 console.log(error)
                 toast.error(error.message)
             }
         }
 
-        fetchReviews()
-    },[])
+        if(itemId){
+            fetchReviews()
+        }
+    },[itemId ])
 
     return (
         <div className='w-full pt-16 flex flex-col'>
@@ -127,7 +151,7 @@ export const Review = ({itemId}) => {
                         <textarea 
                         type='text'
                         placeholder=' '
-                        value={comment}
+                        value={comment || ''}
                         onChange={(e) => setComment(e.target.value)}
                         className='peer w-full min-h-24 p-3 outline-none border focus:border-green-400 bg-neutral-100 rounded-lg transition-all'
                         />
@@ -152,7 +176,7 @@ export const Review = ({itemId}) => {
 
             <div className='mt-12'>
                 
-                {reviews && reviews.length === 0 ? (
+                {reviews && reviews.user_reviews.length === 0 ? (
                     <div className='w-full flex justify-center text-2xl text-neutral-300 font-bold max-[425px]:text-base'>
                         No Reviews to show. Be the first to review!
                     </div>
@@ -160,8 +184,8 @@ export const Review = ({itemId}) => {
                     <div>
                         <h3 className='text-xl font-bold mb-4'>Recent Reviews</h3>
                         <div className='flex flex-col gap-4'>
-                            {reviews && reviews.map((rev) => (
-                                <div onClick={console.log(reviews)} key={rev.comment} className='flex flex-row items-center'>
+                            {reviews && reviews.user_reviews.map((rev) => (
+                                <div key={rev.id} className='flex flex-row items-center'>
                                     <div className='p-3 rounded-full bg-neutral-100'>
                                         <User />
                                     </div>
@@ -179,4 +203,4 @@ export const Review = ({itemId}) => {
             </div>
         </div>
     )
-    }
+    })

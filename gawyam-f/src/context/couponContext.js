@@ -1,4 +1,4 @@
-import { useContext , createContext, useState, useEffect } from "react";
+import { useContext , createContext, useState, useEffect, useCallback } from "react";
 import api from "../axiosApi/api";
 import { useAuth } from "./authContext";
 
@@ -34,7 +34,7 @@ export const CouponProvider = ({children}) => {
         }
     }
 
-    const checkAutoApply = async (totalAmount) => {
+    const checkAutoApply = useCallback( async (totalAmount) => {
       try {
         const statusRes = await api.get('/coupon/eligible')
         const check = statusRes.data.eligible_for_coupon
@@ -69,7 +69,7 @@ export const CouponProvider = ({children}) => {
       } finally{
         setCouponLoading(false)
       }
-    }
+    },[user])
 
     return (
         <couponContext.Provider value={{coupons , couponLoading , couponOnCart , checkAutoApply}}>

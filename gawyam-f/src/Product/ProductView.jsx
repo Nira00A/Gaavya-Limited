@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { memo, useEffect, useRef, useState } from 'react';
 import { Star, Heart, ArrowLeft, Plus, Minus, ShoppingBag, Hexagon, Zap, ChevronDown, ChevronUp } from 'react-feather';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/cartContext';
@@ -6,27 +6,31 @@ import { Review } from './Review';
 import { useWishlist } from '../context/wishlistCustomHook';
 import { useProd } from '../context/productContext';
 import { toast } from 'react-toastify';
+import { useProf } from '../context/profileContext';
 
-export const ProductView = () => {
+const ProductView = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { addToCart, increaseQuantity, decreaseQuantity, cart } = useCart();
     
-    // Changed to hold a single object
     const [product, setProduct] = useState(null);
-    const [loading, setLoading] = useState(true);
     
-    const { getProduct } = useProd();
+    const { getProduct , prodLoading} = useProd();
+    const { reviews } = useProf()
 
-    // UI States
     const [selectedServing, setSelectedServing] = useState("");
     const [activeImage, setActiveImage] = useState("");
     const [activeTab, setActiveTab] = useState(false);
 
+    const isReviewInitial = useRef(null)
+
     useEffect(() => {
+        if (!id || isReviewInitial.current === id) return;
+
         const fetchProduct = async () => {
-            setLoading(true);
             try {
+                isReviewInitial.current = id
+
                 const data = await getProduct(id);
    
                 if (data) {
@@ -42,23 +46,26 @@ export const ProductView = () => {
             } catch (error) {
                 console.log(error);
                 toast.error('Failed to load product');
-            } finally {
-                setLoading(false);
             }
         };
 
-        if (id) fetchProduct();
-    }, [id, getProduct]); // Removed 'products' dependency loop
+        fetchProduct();
+    }, [id, getProduct]); 
 
     const { toggleWishlist, isItemInWishlist } = useWishlist();
     const cartItem = cart.find(item => item.id === product?.id);
     const isFavorited = isItemInWishlist(product?.id);
 
-    if (loading) return <div className="p-20 text-center">Loading fresh details...</div>;
+    if (prodLoading) return <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white animate-in fade-in duration-300">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-4 border-green-200 border-t-green-600 rounded-full animate-spin"></div>
+            <p className="text-green-800 font-bold animate-pulse">Loading...</p>
+          </div>
+        </div>
     if (!product) return <div className="p-20 text-center font-bold">Product not found!</div>;
 
     // Default Serving Options if DB is empty
-    const servingOptions = product.serving_options || ["500 ml", "1 L"];
+    const servingOptions = product.serving_options || "500 ml";
 
     return (
         <div className="bg-white min-h-screen font-sans text-slate-800">
@@ -143,7 +150,7 @@ export const ProductView = () => {
                                         <h4 className="text-sm font-bold text-slate-900 uppercase tracking-[0.2em] mb-4">Best Suited For</h4>
                                         <div className="p-4 bg-green-50/50 rounded-2xl border border-green-100/50">
                                             <p className="text-xs text-green-700/70 leading-normal">
-                                                {product.best_suited_for || "Drinking, Tea, Coffee, and Sweets."}
+                                                {product.best_suited_for.join(', ') || "Not Mentioned"}
                                             </p>
                                         </div>
                                     </div>
@@ -191,7 +198,7 @@ export const ProductView = () => {
                                     
                                     <Star size={12} fill="currentColor" />
                                 </div>
-                                <span className="text-gray-400 text-sm font-medium">{product.reviews || 0} ratings</span>
+                                <span className="text-gray-400 text-sm font-medium">{reviews.averageRating ? reviews.averageRating : 0} ratings</span>
                             </div>
                         </div>
 
@@ -264,3 +271,5 @@ export const ProductView = () => {
         </div>
     );
 };
+
+export default React.memo(ProductView)

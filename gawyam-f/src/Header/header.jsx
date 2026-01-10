@@ -58,13 +58,13 @@ export default function Header() {
 
         {/* Action Buttons Area */}
         <div className='flex gap-3 items-center'>
-          <button
-            onClick={handleAppButton}
+          <Link
+            to={'/coupons'}
             className="text-sm hidden md:block relative px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow-md transition transform hover:scale-105"
           >
-            Download
-            <span className="hidden min-[846px]:inline"> The App</span>
-          </button>
+            Claim 
+            <span className="hidden min-[846px]:inline"> your Coupon</span>
+          </Link>
 
           {/* Cart Icon */}
           <Link 

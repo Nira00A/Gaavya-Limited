@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLoading } from '../context/loadingContext';
 import { useAuth } from '../context/authContext';
@@ -6,6 +6,7 @@ import { useProf } from '../context/profileContext';
 import { toast } from 'react-toastify';
 import CanOrderPopup from './canOrderPopup';
 import api from '../axiosApi/api';
+import NoDelivaryPopup from './LocationPopup';
 
 export const LocationPage = () => {
   const [detecting, setDetecting] = useState(false);
@@ -13,7 +14,7 @@ export const LocationPage = () => {
   const [canOrder , setCanOrder] = useState(false)
   const { startLoading, stopLoading } = useLoading();
   const { address, setAddress , locationDelete} = useProf();
-  const { user } = useAuth();
+  const { user } = useAuth()
 
   // Local state for the single address form
   const [formData, setFormData] = useState({
@@ -23,6 +24,35 @@ export const LocationPage = () => {
     latitude: null,
     longitude: null
   });
+
+  /*Location get */
+    const isAddressInitial = useRef(false)
+
+    const fetchAddress = useCallback( async () => {
+        if (!user) return;
+        startLoading();
+        try {
+            isAddressInitial.current = true
+            const response = await api.get('/location/get');
+            console.log(response)
+            if(response.data.success){
+              setAddress(response.data.user_address);
+            } else if (!response.data.success){
+              toast.error(response.data.text)
+              setAddress(response.data.user_address);
+            }
+        } catch (error) {
+            console.log(error)
+            isAddressInitial.current = false;
+        } finally {
+            stopLoading();
+        }
+        },[user]);
+
+    useEffect(() => {
+        if (!user || isAddressInitial.current) return
+        fetchAddress();
+    }, [user]); 
 
   const handleDetect = () => {
     setDetecting(true);
@@ -86,26 +116,6 @@ export const LocationPage = () => {
     }
   }
 
-  useEffect(() => {
-    const fetchAddress = async () => {
-      if (!user) return;
-      startLoading();
-      try {
-        const response = await api.get('/location/get');
-        if (response.data.success) {
-          setAddress(response.data.user_address);
-        } else {
-           setAddress(null);
-        }
-      } catch (error) {
-        toast.error(error)
-      } finally {
-        stopLoading();
-      }
-    };
-    fetchAddress();
-  }, [user]);
-
   return (
     <div className='flex flex-col gap-10'>
         <CanOrderPopup isOpen={canOrder} onClose={()=>setCanOrder(false)}/>
@@ -136,12 +146,6 @@ export const LocationPage = () => {
             </div>
             <p className=" text-gray-800">{address.full_address}</p>
             <p className="text-sm text-gray-600">{address.landmark}, {address.pincode}</p>
-            <button 
-                onClick={() => setIsEditing(true)}
-                className="w-full bg-green-600 text-white py-2 rounded-lg text-sm  mt-6"
-            >
-                Change
-            </button>
           </div>
         )}
 
@@ -150,7 +154,8 @@ export const LocationPage = () => {
           <div className="space-y-6 animate-in fade-in duration-300">
             <button 
               onClick={handleDetect}
-              className="w-full flex items-center justify-center gap-3 border-2 border-green-600 text-green-600 py-4 rounded-lg  active:scale-95 transition-all"
+              disabled={formData.latitude && formData.longitude ? true : false}
+              className={` w-full flex items-center justify-center gap-3 border-2 border-green-600 text-green-600 py-4 rounded-lg  active:scale-95 transition-all`}
             >
               {detecting ? "Detecting..." : formData.latitude && formData.longitude ? "Location Detected" : "Detect Precise Location"}
             </button>
@@ -160,14 +165,14 @@ export const LocationPage = () => {
                 type="text" 
                 placeholder="House No / Flat / Street"
                 className="w-full p-4 text-sm bg-gray-50 rounded-lg font-semibold outline-none border-2 border-transparent focus:border-green-200"
-                value={address?.full_address}
+                value={formData.full_address}
                 onChange={(e) => setFormData({...formData, full_address: e.target.value})}
               />
               <input 
                 type="text" 
                 placeholder="Landmark (e.g. Near Shiv Mandir)"
                 className="w-full text-sm p-4 bg-gray-50 rounded-lg font-semibold outline-none"
-                value={address?.landmark}
+                value={formData.landmark}
                 onChange={(e) => setFormData({...formData, landmark: e.target.value})}
               />
               <input 
@@ -175,7 +180,7 @@ export const LocationPage = () => {
                 inputMode="numeric"
                 placeholder="Pincode"
                 className="w-full text-sm p-4 bg-gray-50 rounded-lg font-semibold outline-none"
-                value={address?.pincode}
+                value={formData.pincode}
                 onChange={(e) => setFormData({...formData, pincode: e.target.value})}
               />
             </div>
@@ -186,6 +191,9 @@ export const LocationPage = () => {
             </div>
           </div>
         )}
+
+        {/**Address is out of place */}
+        {address && !address.can_order && <NoDelivaryPopup />}
     </div>
   );
 };

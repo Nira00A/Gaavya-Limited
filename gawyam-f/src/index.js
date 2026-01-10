@@ -13,10 +13,9 @@ import { CartProvider } from './context/cartContext';
 import Cart from './Product/cart';
 import Register from './Auth/register';
 import Login from './Auth/login';
-import {ProductView} from './Product/ProductView';
+import ProductView from './Product/ProductView';
 import { CartPopup } from './Product/CartPopup';
 import { AuthProvider } from './context/authContext';
-
 import { ToastContainer, Bounce } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import MainProfile from './Profile/MainProfile';

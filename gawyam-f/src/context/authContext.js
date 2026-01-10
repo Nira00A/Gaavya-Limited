@@ -1,17 +1,24 @@
 import api from '../axiosApi/api'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { createContext , useContext } from 'react'
 import { useLoading } from './loadingContext'
+import { useProf } from './profileContext'
 
 export const AuthContext = createContext()
 
 export const AuthProvider = ({children}) => {
     const [user , setUser] = useState(null)
+    const { profile } = useProf
     const { startLoading , stopLoading } = useLoading()
     const [isAuthLoading, setIsAuthLoading] = useState(true);
 
+    const hasCheckedInitial = useRef(false);
+
     useEffect(() => {
-        const initAuth = async () => {
+        if (user || hasCheckedInitial.current) return
+
+        const initAuth =  async() => {
+            hasCheckedInitial.current = true
             try {
                 const res = await api.get('/auth/check');
                 setUser(res.data.user);
@@ -23,8 +30,7 @@ export const AuthProvider = ({children}) => {
             }
         };
         initAuth();
-        
-    }, []);
+    }, [user , profile]);
 
     const login = async (user_email, user_password) => {
         startLoading()

@@ -1,31 +1,40 @@
 import { useCart } from '../context/cartContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Trash2, Minus, Plus, ArrowRight, Trash } from 'react-feather';
-import { useEffect , useState} from 'react';
+import { useEffect , useRef, useState} from 'react';
 import { useCoupon } from '../context/couponContext';
 import { toast } from 'react-toastify';
+import { useAuth } from '../context/authContext';
 
 const Cart = () => {
   const { cart, increaseQuantity , decreaseQuantity , removeItem, clearCart , totalPrice } = useCart();
-
+  const { user } = useAuth()
   const [discountAmount, setDiscountAmount] = useState(0);
 
   const { checkAutoApply , couponLoading , couponOnCart} = useCoupon()
+  const [address , setAddress] = useState()
+  const isCheckInitial = useRef(false)
+
+  const navigate = useNavigate()
 
   useEffect(() => {
-    const applyDiscount = async () => {
+    if(totalPrice <= 0 || isCheckInitial.current) return
 
-      const discountValue = await checkAutoApply(totalPrice);
-      
-      setDiscountAmount(discountValue);
-      toast.info('Discount applied')
-      
+    const applyDiscount = async () => {
+      try{
+        isCheckInitial.current = true
+        const discountValue = await checkAutoApply(totalPrice);
+        
+        setDiscountAmount(discountValue);
+        toast.info('Discount applied')
+      } catch (error){
+        isCheckInitial.current = false
+        toast.error(error.message)
+      }
     };
 
-    if(totalPrice > 0) {
-        applyDiscount();
-    }
-  }, [cart]);
+    applyDiscount();
+  }, [totalPrice , isCheckInitial]);
 
   if (cart.length === 0) {
     return (
@@ -58,20 +67,26 @@ const Cart = () => {
             </button>
           </div>
           {cart.map((item) => (
-            <div key={item.id} className="bg-white p-4 rounded-2xl flex items-center gap-4 shadow-sm border border-gray-100">
-              <img src={item.img} className="w-20 h-20 rounded-2xl object-cover bg-slate-50" alt="" />
+            <div onClick={()=>navigate(`/product/${item.id}`)} key={item.id} className="bg-white p-4 rounded-2xl flex items-center gap-4 shadow-sm border border-gray-100">
+              <img src={item.image_url} className="w-20 h-20 rounded-2xl object-cover bg-slate-50" alt="" />
               <div className="flex-1">
                 <h4 className="font-bold text-neutral-500">{item.name}</h4>
                 <p className="text-green-600 font-bold">₹{item.price}</p>
               </div>
               
               <div className="flex items-center gap-3 bg-slate-100 p-2 rounded-2xl">
-                <button onClick={() => decreaseQuantity(item.id, -1)} className="p-1 hover:text-green-600"><Minus size={16}/></button>
+                <button onClick={(e) => {
+                  e.stopPropagation()
+                  decreaseQuantity(item.id, -1)}} className="p-1 hover:text-green-600"><Minus size={16}/></button>
                 <span className="font-bold w-4 text-center">{item.quantity}</span>
-                <button onClick={() => increaseQuantity(item.id, 1)} className="p-1 hover:text-green-600"><Plus size={16}/></button>
+                <button onClick={(e) => {
+                  e.stopPropagation()
+                  increaseQuantity(item.id, 1)}} className="p-1 hover:text-green-600"><Plus size={16}/></button>
               </div>
 
-              <button onClick={() => removeItem(item.id)} className="text-gray-300 hover:text-red-500 transition-colors p-2">
+              <button onClick={(e) => {
+                e.stopPropagation()
+                removeItem(item.id)}} className="text-gray-300 hover:text-red-500 transition-colors p-2">
                 <Trash2 size={20} />
               </button>
             </div>
