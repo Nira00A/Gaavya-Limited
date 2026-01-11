@@ -8,14 +8,15 @@ const adminRoutes = require('./routes/adminRoutes')
 const adminProductsRoutes = require('./routes/adminProductsRoutes')
 const adminCouponsRoutes = require('./routes/adminCouponsRoutes')
 
-app.set('trust proxy', 1);
-
 const corsOptions = {
     origin: ['http://localhost:3000', 'http://192.168.1.7:3000' , 'https://gaavya-limited-frontend.onrender.com'],
     credentials: true
 };
 
 const app = express();
+
+app.set('trust proxy', 1);
+
 const PORT = 5000;
 app.use(express.json());
 app.use(cors(corsOptions));
