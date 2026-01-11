@@ -8,8 +8,10 @@ const adminRoutes = require('./routes/adminRoutes')
 const adminProductsRoutes = require('./routes/adminProductsRoutes')
 const adminCouponsRoutes = require('./routes/adminCouponsRoutes')
 
+app.set('trust proxy', 1);
+
 const corsOptions = {
-    origin: ['http://localhost:3000', 'http://192.168.1.7:3000' , process.env.FRONTEND_URL],
+    origin: ['http://localhost:3000', 'http://192.168.1.7:3000' , 'https://gaavya-limited-frontend.onrender.com'],
     credentials: true
 };
 

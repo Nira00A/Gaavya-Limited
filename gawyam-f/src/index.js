@@ -70,14 +70,14 @@ const Approutes = () =>{
         }]
     },
     {
-      path: '/',
+      path: '/admin',
       element: 
       <AdminProvider>
         <Outlet />
       </AdminProvider>,
       children:[
         {
-          path:'/admin',
+          path:'',
           element: (
           <AdminProtection>
             <AdminOutlet />
