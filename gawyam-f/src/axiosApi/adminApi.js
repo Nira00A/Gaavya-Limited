@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const adminApi = axios.create({
-  baseURL: 'http://192.168.1.7:5000/admin',
+  baseURL: process.env.REACT_APP_ADMIN_API,
   withCredentials: true 
 });
 
