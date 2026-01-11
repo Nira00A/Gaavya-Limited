@@ -9,7 +9,7 @@ const adminProductsRoutes = require('./routes/adminProductsRoutes')
 const adminCouponsRoutes = require('./routes/adminCouponsRoutes')
 
 const corsOptions = {
-    origin: ['http://localhost:3000', 'http://192.168.1.7:3000' , 'https://gaavya-limited-frontend.onrender.com'],
+    origin: ['https://gaavya-limited-frontend.onrender.com'],
     credentials: true
 };
 
